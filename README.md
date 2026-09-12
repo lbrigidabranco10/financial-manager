@@ -99,8 +99,9 @@ Not required, but automatic:
 
 - **Claude review** — runs on every push to a non-draft PR and comments on bugs, security,
   money handling, migrations and tests. Write `@claude` in a PR comment to ask it something.
-  A PR that changes the Claude workflow files themselves is skipped (the action only runs
-  the version already on `main`).
+  On a PR that edits the Claude workflow files, the review is skipped: GitHub runs the
+  edited workflow, but the Claude action refuses to authenticate unless the file is
+  identical to the one on `main` ("Workflow validation failed" in the job log).
 - **Dependabot** — weekly grouped update PRs for Maven, npm and GitHub Actions. Its PRs get
   no secrets, so the Sonar scan and Claude review are skipped on them.
 
