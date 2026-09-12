@@ -1,5 +1,8 @@
 # Financial Manager
 
+[![CI](https://github.com/lbrigidabranco10/financial-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/lbrigidabranco10/financial-manager/actions/workflows/ci.yml)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=lbrigidabranco10_financial-manager&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=lbrigidabranco10_financial-manager)
+
 Personal finance app: fast expense entry from the iPhone (installed as a PWA) and analytics
 on where income goes.
 
@@ -69,6 +72,40 @@ Stop each with `Ctrl+C`.
 Start the frontend with `npm run dev -- --host` and open the `Network:` URL it prints
 (e.g. `http://192.168.x.x:5173`) in Safari.
 
+## Making changes
+
+`main` is protected: no direct pushes, no force pushes. Every change goes through a pull
+request.
+
+```bash
+git switch main && git pull
+git switch -c feat/short-description      # or fix/…, chore/…, docs/…
+# commit, then:
+git push -u origin feat/short-description
+gh pr create
+```
+
+A PR can be merged (squash only) when:
+
+| Check | What it does |
+| --- | --- |
+| `backend` | `./mvnw verify` — tests against Testcontainers Postgres, Modulith boundaries, JaCoCo coverage |
+| `frontend` | lint, Vitest with coverage, production build |
+| `sonar` | [SonarQube Cloud](https://sonarcloud.io/summary/new_code?id=lbrigidabranco10_financial-manager) analysis with coverage; fails on a red quality gate (≥ 80% coverage on new code, no new issues) |
+| CodeQL | Security scanning for Java, TypeScript and workflows; blocks on high-severity alerts |
+| Review threads | All review comments resolved |
+
+Not required, but automatic:
+
+- **Claude review** — runs on every push to a non-draft PR and comments on bugs, security,
+  money handling, migrations and tests. Write `@claude` in a PR comment to ask it something.
+  A PR that changes the Claude workflow files themselves is skipped (the action only runs
+  the version already on `main`).
+- **Dependabot** — weekly grouped update PRs for Maven, npm and GitHub Actions. Its PRs get
+  no secrets, so the Sonar scan and Claude review are skipped on them.
+
+The branch is deleted automatically after merge; locally run `git switch main && git pull`.
+
 ## Recommended IntelliJ plugins
 
 Bundled with Ultimate (just enable): Lombok (also enable *Settings → Build → Compiler →
@@ -80,7 +117,7 @@ Worth installing:
 | Plugin | Why |
 | --- | --- |
 | JPA Buddy | Diffs entities against the schema and generates Flyway migrations |
-| SonarQube for IDE | Inline bug detection for Java and TypeScript |
+| SonarQube for IDE | Inline bug detection for Java and TypeScript. Bind it to the SonarQube Cloud project (connected mode) to get the same rules as CI |
 | Maven Helper | Dependency conflict tree |
 | Claude Code [Beta] (vendor: anthropic) | Official plugin; diffs in the IntelliJ viewer, shares selection and diagnostics |
 
@@ -95,4 +132,11 @@ Worth installing:
 
 ## Personal data
 
-Spreadsheets and exports (`*.xlsx`, `*.xls`, `*.csv`) are ignored by git. Never commit them.
+This repository is public. Real financial data lives only in the production database.
+
+- Spreadsheets and exports (`*.xlsx`, `*.xls`, `*.csv`) and `.env` files are ignored by git.
+  Never commit them.
+- GitHub Actions logs, PR comments and the SonarQube dashboard are public too — tests and
+  fixtures use made-up amounts only.
+- Credentials go in GitHub secrets / Cloud Run configuration, never in files. Push
+  protection blocks known secret formats.

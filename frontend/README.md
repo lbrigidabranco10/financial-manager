@@ -1,14 +1,18 @@
 # Frontend
 
-React 19 · Vite 8 · TypeScript · react-i18next · Vitest · oxlint.
+React 19 · Vite 8 · TypeScript 7 · react-i18next · Vitest · oxlint.
 
 Requires Node.js 24. See the [root README](../README.md).
 
 ## Setup
 
 ```bash
-npm install
+npm ci --ignore-scripts
 ```
+
+`npm ci` installs exactly what `package-lock.json` pins; `--ignore-scripts` stops dependencies
+from running install scripts, same as CI. Use `npm install <package>` only when adding or
+upgrading a dependency.
 
 ## Run
 
@@ -39,6 +43,7 @@ In development, requests to `/api/*` are proxied to the backend on `http://local
 | `npm run dev` | Dev server with hot reload |
 | `npm run lint` | oxlint |
 | `npm test` | Vitest, single run |
+| `npm test -- --coverage` | Same, plus coverage in the terminal and `coverage/` (as CI runs it). `src/main.tsx` is excluded — it only mounts React |
 | `npm run build` | Type-check and production build into `dist/` |
 | `npm run preview` | Serve the production build locally |
 
