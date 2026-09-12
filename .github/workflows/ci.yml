@@ -75,6 +75,26 @@ jobs:
         with:
           name: frontend-coverage
           path: frontend/coverage
+      - uses: actions/setup-java@v6
+        if: env.SONAR_TOKEN != ''
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      # Sonar's Java rules need the dependency jars to resolve Spring/JPA/Lombok types.
+      - name: Resolve Java libraries
+        id: java-libs
+        if: env.SONAR_TOKEN != ''
+        working-directory: backend
+        run: |
+          ./mvnw -B -q dependency:build-classpath -DincludeScope=compile -Dmdep.pathSeparator=, -Dmdep.outputFile=main.cp
+          ./mvnw -B -q dependency:build-classpath -DincludeScope=test -Dmdep.pathSeparator=, -Dmdep.outputFile=test.cp
+          echo "main=$(cat main.cp)" >> "$GITHUB_OUTPUT"
+          echo "test=$(cat test.cp)" >> "$GITHUB_OUTPUT"
       - name: SonarQube Cloud scan
         if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        with:
+          args: >
+            -Dsonar.java.libraries=${{ steps.java-libs.outputs.main }}
+            -Dsonar.java.test.libraries=${{ steps.java-libs.outputs.test }}
