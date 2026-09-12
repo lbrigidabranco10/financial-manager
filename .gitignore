@@ -1,0 +1,11 @@
+.DS_Store
+.idea/
+*.iml
+
+# Personal financial data — never commit
+*.xlsx
+*.xls
+*.csv
+
+.env
+.env.*
