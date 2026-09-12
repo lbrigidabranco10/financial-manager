@@ -15,7 +15,8 @@ Status: **Phase 0 done** (2026-09-12). Next: Phase 1.
 | Hosting | One Cloud Run container serves API + SPA; no Cloudflare Pages |
 | Income | Configured through forms on first login, with effective-dated amounts (§3.2) |
 | Spreadsheet | Reference only — its numbers are typed into the income forms, never imported |
-| Repo | Private GitHub repo |
+| Repo | Public GitHub repo — no personal data in code; unlocks free branch protection, CodeQL and unlimited Actions |
+| Quality gates | PRs only into `main`; CI, SonarQube Cloud and CodeQL must pass; Claude reviews every PR; Dependabot weekly |
 
 ## 2. Architecture
 
@@ -53,9 +54,10 @@ is not worth it at this size. Decision: **CDS, accept the second.**
 cannot pull from `ghcr.io` directly. Artifact Registry's free tier is 0.5 GB;
 a cleanup policy keeping the last 3 images stays under it.
 
-**GitHub Actions on a private repo:** GitHub Free includes 2,000 Linux runner
-minutes/month for private repos. A build here is ~5 minutes, so roughly 400
-builds/month. Use `ubuntu-latest` only (macOS runners bill at 10×).
+**GitHub Actions:** standard runners are free and unlimited for public repos.
+SonarQube Cloud is free for public projects. The Claude PR review runs on the
+owner's Claude subscription (`CLAUDE_CODE_OAUTH_TOKEN`), so it uses subscription
+limits rather than a separate bill.
 
 ### Stack
 
@@ -63,7 +65,8 @@ builds/month. Use `ubuntu-latest` only (macOS runners bill at 10×).
   Login, Spring Data JPA, Flyway, Spring Session JDBC, Spring Modulith.
 - Frontend: React + Vite + TypeScript, `vite-plugin-pwa`, TanStack Query,
   `react-i18next`, `idb` (offline queue), Recharts.
-- Tests: JUnit 5 + Testcontainers Postgres, Vitest.
+- Tests: JUnit 6 + Testcontainers Postgres, Vitest; coverage via JaCoCo and V8.
+- Quality: SonarQube Cloud (quality gate on PRs), CodeQL, Claude PR review, Dependabot.
 - CI/CD: GitHub Actions → Artifact Registry → Cloud Run.
 
 ### Backend modules
@@ -94,9 +97,11 @@ enabled BOOL          kind        VARCHAR        kind              VARCHAR  EXPE
                       color       VARCHAR        category_id       UUID     FK
                       sort_order  INT            occurred_on       DATE
                       archived    BOOL           note              VARCHAR NULL
-                      UNIQUE(kind,name)          recurring_item_id UUID NULL FK
+                      UNIQUE(kind,name)          created_at, updated_at
+
+                                                 added in V5 with recurring items (Phase 3):
+                                                 recurring_item_id UUID NULL FK
                                                  period            DATE NULL  first day of the month it belongs to
-                                                 created_at, updated_at
                                                  UNIQUE(recurring_item_id, period)
 ```
 
@@ -161,13 +166,17 @@ id, name, token_hash (SHA-256), last_used_at, revoked_at, created_at
 ### 3.4 Flyway migrations
 
 ```
-V1__create_currencies.sql               seed EUR
-V2__create_categories.sql               seed default categories
-V3__create_recurring_items.sql          items + amounts
-V4__create_transactions.sql
-V5__create_spring_session.sql           Spring's schema — the one exception to plural naming
-V6__create_api_tokens.sql
+Phase 1  V1__create_currencies.sql          seed EUR
+         V2__create_categories.sql          seed default categories
+         V3__create_transactions.sql
+         V4__create_spring_session.sql      Spring's schema — the one exception to plural naming
+Phase 3  V5__create_recurring_items.sql     items + amounts; adds recurring_item_id/period to transactions
+Phase 5  V6__create_api_tokens.sql
 ```
+
+Numbers follow build order. Flyway rejects a migration numbered lower than one
+already applied, so versions are never reserved for later phases, and an applied
+migration is never edited — changes go in a new one.
 
 ### 3.5 Default categories (renameable)
 
@@ -225,10 +234,10 @@ so the queue flushes when the app opens or comes back online.
 
 | # | Phase | Done when |
 | --- | --- | --- |
-| 0 | **Skeleton** — git, Maven backend, Vite frontend with i18n, docker-compose Postgres, Testcontainers base test, Modulith verify test, GitHub Actions build | `./mvnw verify` and `npm run build` green locally and in CI |
-| 1 | **Core** — V1, V2, V4, V5; categories + transactions API; Google login + allowlist + JDBC sessions | integration tests pass; login works locally |
+| 0 ✅ | **Skeleton** — git, Maven backend, Vite frontend with i18n, docker-compose Postgres, Testcontainers base test, Modulith verify test, GitHub Actions build; public repo with protected `main`, SonarQube Cloud, CodeQL, Claude review, Dependabot | `./mvnw verify` and `npm run build` green locally and in CI |
+| 1 | **Core** — V1–V4; categories + transactions API; Google login + allowlist + JDBC sessions | integration tests pass; login works locally |
 | 2 | **Entry + deploy** — Add + History, PWA, offline queue; Dockerfile with CDS; Neon + Artifact Registry + Cloud Run | expense added from the iPhone Home Screen, including in airplane mode |
-| 3 | **Income & recurring** — V3, recurring items + amounts, onboarding forms, *To confirm* flow, AUTO catch-up | a scheduled raise changes only months after its date |
+| 3 | **Income & recurring** — V5, recurring items + amounts, onboarding forms, *To confirm* flow, AUTO catch-up | a scheduled raise changes only months after its date |
 | 4 | **Analytics** — endpoints + screen, expected vs actual | month and 12-month views correct against test data |
 | 5 | **Siri** — V6, tokens, `/quick/expense`, Shortcut setup notes | "Hey Siri, add expense" creates a transaction |
 | 6 | **Later** — Portuguese translation, budgets per category, CSV export, second currency, `k8s/` + Helm on kind | — |
@@ -241,5 +250,6 @@ cost ~$25/month if left running — delete the cluster the same day.
 ## 7. Costs
 
 **€0/month**: Cloud Run free tier, Neon free tier, Artifact Registry ≤ 0.5 GB,
-GitHub Free private repo with 2,000 Action minutes. Optional domain ~€10/year.
+public GitHub repo (Actions, CodeQL), SonarQube Cloud free for public projects,
+Claude review on the existing Claude subscription. Optional domain ~€10/year.
 Set a GCP budget alert at €1 as a safety net.

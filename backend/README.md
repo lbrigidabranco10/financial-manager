@@ -72,6 +72,9 @@ JAVA_HOME=$(/usr/libexec/java_home -v 21) ./mvnw verify
 - `FinancialManagerApplicationTests` starts the full app against a throwaway Postgres
   container (Testcontainers).
 - `ModularityTests` fails the build if one module reaches into another module's internals.
+- Coverage: `verify` writes a JaCoCo report to `target/site/jacoco/index.html` (open it in a
+  browser). CI sends `jacoco.xml` to SonarQube, whose quality gate needs ≥ 80% coverage on
+  new code. `FinancialManagerApplication` is excluded — it only boots Spring.
 
 **Colima and Testcontainers.** The `colima` Maven profile activates automatically when
 `~/.colima/default/docker.sock` exists and tells Testcontainers where Docker is. It only
@@ -90,7 +93,8 @@ database instead of `compose.yaml`: useful when you want a throwaway database.
 ## Conventions
 
 - Flyway owns the schema (`ddl-auto=validate`). Migrations go in
-  `src/main/resources/db/migration` as `V<n>__<snake_case>.sql`.
+  `src/main/resources/db/migration` as `V<n>__<snake_case>.sql`, numbered in the order they
+  are written. Never edit a migration that has been merged — add a new one.
 - Plural table names, singular entity names.
 - Money: `amount_minor BIGINT` + `currency CHAR(3)`, never floating point.
 - One top-level package per module (`category`, `transaction`, `recurring`, `analytics`, …).
