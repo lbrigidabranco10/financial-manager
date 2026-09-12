@@ -31,6 +31,9 @@ npm run lint && npm test -- --coverage && npm run build
   Work on a branch (`feat/`, `fix/`, `chore/`, `docs/`) and open a PR with `gh pr create`.
 - Merges are squash-only. Required checks: `backend`, `frontend`, `sonar`, CodeQL, resolved
   review threads. The Claude review is automatic but not required.
+- CodeQL uses GitHub's code scanning default setup (repo settings, languages `actions`,
+  `java-kotlin`, `javascript-typescript`), not a workflow file. Verify with
+  `gh api repos/lbrigidabranco10/financial-manager/code-scanning/default-setup`.
 - Run the same checks locally before pushing (commands above).
 - The repo is public: commit author must be the GitHub noreply address (already the global
   git config).

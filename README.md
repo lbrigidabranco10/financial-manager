@@ -92,7 +92,7 @@ A PR can be merged (squash only) when:
 | `backend` | `./mvnw verify` — tests against Testcontainers Postgres, Modulith boundaries, JaCoCo coverage |
 | `frontend` | lint, Vitest with coverage, production build |
 | `sonar` | [SonarQube Cloud](https://sonarcloud.io/summary/new_code?id=lbrigidabranco10_financial-manager) analysis with coverage; fails on a red quality gate (≥ 80% coverage on new code, no new issues) |
-| CodeQL | Security scanning for Java, TypeScript and workflows; blocks on high-severity alerts |
+| CodeQL | Security scanning for Java, TypeScript and workflows; blocks on high-severity alerts. Runs through GitHub's code scanning *default setup* (Settings → Code security), so there is no workflow file for it |
 | Review threads | All review comments resolved |
 
 Not required, but automatic:
